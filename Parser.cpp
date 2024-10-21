@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 #include <cctype>
-#include <map>
 
 using namespace std;
 
@@ -10,34 +9,43 @@ enum TokenType {
     T_INT, T_ID, T_NUM, T_IF, T_ELSE, T_RETURN,
     T_ASSIGN, T_PLUS, T_MINUS, T_MUL, T_DIV,
     T_LPAREN, T_RPAREN, T_LBRACE, T_RBRACE,
-    T_SEMICOLON, T_GT, T_EQ, T_EOF
+    T_SEMICOLON, T_GT, T_EQ, T_EOF, T_WHILE
 };
 
 struct Token {
     TokenType type;
     string value;
+    int line;
+    int col;
 };
 
 class Lexer {
 private:
     string src;
     size_t pos;
+    int line;
+    int col;
 
 public:
-    Lexer(const string &src) {
-        this->src = src;
-        this->pos = 0;
-    }
+    Lexer(const string &src) : src(src), pos(0), line(1), col(1) {}
 
     string consumeNumber() {
         size_t start = pos;
-        while (pos < src.size() && isdigit(src[pos])) pos++;
+        int startCol = col;
+        while (pos < src.size() && isdigit(src[pos])) {
+            pos++;
+            col++;
+        }
         return src.substr(start, pos - start);
     }
 
     string consumeWord() {
         size_t start = pos;
-        while (pos < src.size() && isalnum(src[pos])) pos++;
+        int startCol = col;
+        while (pos < src.size() && isalnum(src[pos])) {
+            pos++;
+            col++;
+        }
         return src.substr(start, pos - start);
     }
 
@@ -47,42 +55,52 @@ public:
             char current = src[pos];
 
             if (isspace(current)) {
+                if (current == '\n') {
+                    line++;
+                    col = 1;
+                } else {
+                    col++;
+                }
                 pos++;
                 continue;
             }
 
-            if (isdigit(current) ) {
-                tokens.push_back(Token{T_NUM, consumeNumber()});
+            if (isdigit(current)) {
+                tokens.push_back(Token{T_NUM, consumeNumber(), line, col});
                 continue;
             }
 
-            if (isalpha(current) ) {
+            if (isalpha(current)) {
                 string word = consumeWord();
-                if (word == "int") tokens.push_back(Token{T_INT, word});
-                else if (word == "if") tokens.push_back(Token{T_IF, word});
-                else if (word == "else") tokens.push_back(Token{T_ELSE, word});
-                else if (word == "return") tokens.push_back(Token{T_RETURN, word});
-                else tokens.push_back(Token{T_ID, word});
+                if (word == "int") tokens.push_back(Token{T_INT, word, line, col});
+                else if (word == "if") tokens.push_back(Token{T_IF, word, line, col});
+                else if (word == "else") tokens.push_back(Token{T_ELSE, word, line, col});
+                else if (word == "return") tokens.push_back(Token{T_RETURN, word, line, col});
+                else if (word == "while") tokens.push_back(Token{T_WHILE, word, line, col});
+                else tokens.push_back(Token{T_ID, word, line, col});
                 continue;
             }
-            
+
             switch (current) {
-                case '=': tokens.push_back(Token{T_ASSIGN, "="}); break;
-                case '+': tokens.push_back(Token{T_PLUS, "+"}); break;
-                case '-': tokens.push_back(Token{T_MINUS, "-"}); break;
-                case '*': tokens.push_back(Token{T_MUL, "*"}); break;
-                case '/': tokens.push_back(Token{T_DIV, "/"}); break;
-                case '(': tokens.push_back(Token{T_LPAREN, "("}); break;
-                case ')': tokens.push_back(Token{T_RPAREN, ")"}); break;
-                case '{': tokens.push_back(Token{T_LBRACE, "{"}); break;
-                case '}': tokens.push_back(Token{T_RBRACE, "}"}); break;
-                case ';': tokens.push_back(Token{T_SEMICOLON, ";"}); break;
-                case '>': tokens.push_back(Token{T_GT, ">"}); break;
-                default: cout << "Unexpected character: " << current << endl; exit(1);
+                case '=': tokens.push_back(Token{T_ASSIGN, "=", line, col}); break;
+                case '+': tokens.push_back(Token{T_PLUS, "+", line, col}); break;
+                case '-': tokens.push_back(Token{T_MINUS, "-", line, col}); break;
+                case '*': tokens.push_back(Token{T_MUL, "*", line, col}); break;
+                case '/': tokens.push_back(Token{T_DIV, "/", line, col}); break;
+                case '(': tokens.push_back(Token{T_LPAREN, "(", line, col}); break;
+                case ')': tokens.push_back(Token{T_RPAREN, ")", line, col}); break;
+                case '{': tokens.push_back(Token{T_LBRACE, "{", line, col}); break;
+                case '}': tokens.push_back(Token{T_RBRACE, "}", line, col}); break;
+                case ';': tokens.push_back(Token{T_SEMICOLON, ";", line, col}); break;
+                case '>': tokens.push_back(Token{T_GT, ">", line, col}); break;
+                default: 
+                    cout << "Unexpected character '" << current << "' at line " << line << ", column " << col << endl;
+                    exit(1);
             }
             pos++;
+            col++;
         }
-        tokens.push_back(Token{T_EOF, ""});
+        tokens.push_back(Token{T_EOF, "", line, col});
         return tokens;
     }
 };
@@ -100,20 +118,36 @@ private:
     }
 
     void parseStatement() {
-        if (tokens[pos].type == T_INT) {
-            parseDeclaration();
-        } else if (tokens[pos].type == T_ID) {
-            parseAssignment();
-        } else if (tokens[pos].type == T_IF) {
-            parseIfStatement();
-        } else if (tokens[pos].type == T_RETURN) {
-            parseReturnStatement();
-        } else if (tokens[pos].type == T_LBRACE) {
-            parseBlock();
-        } else {
-            cout << "Syntax error: unexpected token " << tokens[pos].value << endl;
-            exit(1);
+        switch (tokens[pos].type) {
+            case T_INT:
+                parseDeclaration();
+                break;
+            case T_ID:
+                parseAssignment();
+                break;
+            case T_IF:
+                parseIfStatement();
+                break;
+            case T_RETURN:
+                parseReturnStatement();
+                break;
+            case T_LBRACE:
+                parseBlock();
+                break;
+            case T_WHILE:
+                parseWhileStatement();
+                break;
+            default:
+                syntaxError("unexpected token");
         }
+    }
+
+    void parseWhileStatement() {
+        expect(T_WHILE);
+        expect(T_LPAREN);
+        parseExpression();
+        expect(T_RPAREN);
+        parseStatement();
     }
 
     void parseBlock() {
@@ -183,8 +217,7 @@ private:
             parseExpression();
             expect(T_RPAREN);
         } else {
-            cout << "Syntax error: unexpected token " << tokens[pos].value << endl;
-            exit(1);
+            syntaxError("unexpected token");
         }
     }
 
@@ -192,16 +225,20 @@ private:
         if (tokens[pos].type == type) {
             pos++;
         } else {
-            cout << "Syntax error: expected " << type << " but found " << tokens[pos].value << endl;
-            exit(1);
+            syntaxError("expected different token");
         }
     }
 
-public:
-    Parser(const vector<Token> &tokens) {
-        this->tokens = tokens;
-        this->pos = 0;
+    void syntaxError(const string& message) {
+        cout << "Syntax error: " << message
+             << " at line " << tokens[pos].line
+             << ", column " << tokens[pos].col
+             << ", found token: '" << tokens[pos].value << "'" << endl;
+        exit(1);
     }
+
+public:
+    Parser(const vector<Token> &tokens) : tokens(tokens), pos(0) {}
 
     void parse() {
         parseProgram();
@@ -218,7 +255,10 @@ int main() {
             return b;
         } else {
             return 0;
-    	
+        }
+        while (a < 10) {
+            a = a + 1;
+        }
     )";
 
     Lexer lexer(input);
