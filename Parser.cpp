@@ -9,9 +9,9 @@ using namespace std;
 
 enum TokenType {
     T_INT, T_FLOAT, T_DOUBLE, T_STRING, T_BOOL, T_CHAR, T_ID, 
-    T_NUM, T_IF, T_ELSE, T_RETURN, T_ASSIGN, T_PLUS, 
-    T_MINUS, T_MUL, T_DIV, T_LPAREN, T_RPAREN, T_LBRACE, 
-    T_RBRACE, T_SEMICOLON, T_GT, T_EQ, T_EOF
+    T_NUM, T_AGAR, T_ELSE, T_RETURN, T_WHILE, T_ASSIGN, 
+    T_PLUS, T_MINUS, T_MUL, T_DIV, T_LPAREN, T_RPAREN, 
+    T_LBRACE, T_RBRACE, T_SEMICOLON, T_GT, T_EQ, T_EOF
 };
 
 struct Token {
@@ -75,9 +75,10 @@ public:
                 else if (word == "string") type = T_STRING;
                 else if (word == "bool") type = T_BOOL;
                 else if (word == "char") type = T_CHAR;
-                else if (word == "if") type = T_IF;
+                else if (word == "Agar") type = T_AGAR; // Custom conditional keyword
                 else if (word == "else") type = T_ELSE;
                 else if (word == "return") type = T_RETURN;
+                else if (word == "while") type = T_WHILE; // Loop keyword
 
                 tokens.push_back(Token{type, word, line, column});
                 column += word.length(); // Update column position
@@ -168,10 +169,12 @@ private:
             parseDeclaration();
         } else if (tokens[pos].type == T_ID) {
             parseAssignment();
-        } else if (tokens[pos].type == T_IF) {
+        } else if (tokens[pos].type == T_AGAR) {
             parseIfStatement();
         } else if (tokens[pos].type == T_RETURN) {
             parseReturnStatement();
+        } else if (tokens[pos].type == T_WHILE) {
+            parseWhileStatement(); // Parse while loop
         } else if (tokens[pos].type == T_LBRACE) {
             parseBlock();
         } else {
@@ -209,7 +212,7 @@ private:
     }
 
     void parseIfStatement() {
-        expect(T_IF);
+        expect(T_AGAR);
         expect(T_LPAREN);
         parseExpression();
         expect(T_RPAREN);
@@ -224,6 +227,14 @@ private:
         expect(T_RETURN);
         parseExpression();
         expect(T_SEMICOLON);
+    }
+
+    void parseWhileStatement() {
+        expect(T_WHILE);
+        expect(T_LPAREN);
+        parseExpression();
+        expect(T_RPAREN);
+        parseStatement();
     }
 
     void parseExpression() {
@@ -264,7 +275,9 @@ private:
         if (tokens[pos].type == type) {
             pos++;
         } else {
-            cout << "Syntax error: expected token type " << type << " but found '" << tokens[pos].value << "' at line " << tokens[pos].line << ", column " << tokens[pos].column << endl;
+            cout << "Syntax error: expected token type " << type << " but found '" 
+                 << tokens[pos].value << "' at line " << tokens[pos].line 
+                 << ", column " << tokens[pos].column << endl;
             exit(1);
         }
     }
