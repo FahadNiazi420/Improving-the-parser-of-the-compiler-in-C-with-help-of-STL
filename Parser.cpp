@@ -8,10 +8,10 @@
 using namespace std;
 
 enum TokenType {
-    T_INT, T_ID, T_NUM, T_IF, T_ELSE, T_RETURN,
-    T_ASSIGN, T_PLUS, T_MINUS, T_MUL, T_DIV,
-    T_LPAREN, T_RPAREN, T_LBRACE, T_RBRACE,
-    T_SEMICOLON, T_GT, T_EQ, T_EOF, T_FLOAT, T_CHAR, T_STRING, T_BOOL
+    T_INT, T_FLOAT, T_DOUBLE, T_STRING, T_BOOL, T_CHAR, T_ID, 
+    T_NUM, T_IF, T_ELSE, T_RETURN, T_ASSIGN, T_PLUS, 
+    T_MINUS, T_MUL, T_DIV, T_LPAREN, T_RPAREN, T_LBRACE, 
+    T_RBRACE, T_SEMICOLON, T_GT, T_EQ, T_EOF
 };
 
 struct Token {
@@ -70,13 +70,14 @@ public:
                 TokenType type = T_ID;
 
                 if (word == "int") type = T_INT;
+                else if (word == "float") type = T_FLOAT;
+                else if (word == "double") type = T_DOUBLE;
+                else if (word == "string") type = T_STRING;
+                else if (word == "bool") type = T_BOOL;
+                else if (word == "char") type = T_CHAR;
                 else if (word == "if") type = T_IF;
                 else if (word == "else") type = T_ELSE;
                 else if (word == "return") type = T_RETURN;
-                else if (word == "float") type = T_FLOAT;
-                else if (word == "char") type = T_CHAR;
-                else if (word == "string") type = T_STRING;
-                else if (word == "bool") type = T_BOOL;
 
                 tokens.push_back(Token{type, word, line, column});
                 column += word.length(); // Update column position
@@ -161,7 +162,9 @@ private:
     }
 
     void parseStatement() {
-        if (tokens[pos].type == T_INT || tokens[pos].type == T_FLOAT || tokens[pos].type == T_STRING || tokens[pos].type == T_BOOL || tokens[pos].type == T_CHAR) {
+        if (tokens[pos].type == T_INT || tokens[pos].type == T_FLOAT || 
+            tokens[pos].type == T_DOUBLE || tokens[pos].type == T_STRING || 
+            tokens[pos].type == T_BOOL || tokens[pos].type == T_CHAR) {
             parseDeclaration();
         } else if (tokens[pos].type == T_ID) {
             parseAssignment();
@@ -186,7 +189,9 @@ private:
     }
 
     void parseDeclaration() {
-        if (tokens[pos].type == T_INT || tokens[pos].type == T_FLOAT || tokens[pos].type == T_STRING || tokens[pos].type == T_BOOL || tokens[pos].type == T_CHAR) {
+        if (tokens[pos].type == T_INT || tokens[pos].type == T_FLOAT || 
+            tokens[pos].type == T_DOUBLE || tokens[pos].type == T_STRING || 
+            tokens[pos].type == T_BOOL || tokens[pos].type == T_CHAR) {
             expect(tokens[pos].type);
             expect(T_ID);
             expect(T_SEMICOLON);
@@ -242,7 +247,8 @@ private:
     }
 
     void parseFactor() {
-        if (tokens[pos].type == T_NUM || tokens[pos].type == T_ID || tokens[pos].type == T_STRING || tokens[pos].type == T_CHAR) {
+        if (tokens[pos].type == T_NUM || tokens[pos].type == T_ID || 
+            tokens[pos].type == T_STRING || tokens[pos].type == T_CHAR) {
             pos++;
         } else if (tokens[pos].type == T_LPAREN) {
             expect(T_LPAREN);
@@ -258,7 +264,7 @@ private:
         if (tokens[pos].type == type) {
             pos++;
         } else {
-            cout << "Syntax error: expected token of type " << type << " but found '" << tokens[pos].value << "' at line " << tokens[pos].line << ", column " << tokens[pos].column << endl;
+            cout << "Syntax error: expected token type " << type << " but found '" << tokens[pos].value << "' at line " << tokens[pos].line << ", column " << tokens[pos].column << endl;
             exit(1);
         }
     }
